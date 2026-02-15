@@ -43,6 +43,10 @@
 <body>
   <div class="box">
     <h2>GET SIGNAL</h2>
+<select id="market">
+  <option value="otc">OTC</option>
+  <option value="live">Non-OTC</option>
+</select>
 
     <select id="expiry">
       <option value="5">5 sec</option>
@@ -68,7 +72,64 @@
 <script>
 let lastDirections = [];
 
+function <script>
+let lastDirections = [];
+
 function getSignal() {
+  const expiry = parseInt(document.getElementById("expiry").value);
+  const minConf = parseInt(document.getElementById("confidence").value);
+  const market = document.getElementById("market").value;
+
+  let score = 0;
+
+  // базова логіка по таймфрейму
+  if (expiry <= 15) score -= 1;
+  if (expiry === 30) score += 1;
+  if (expiry >= 60) score += 2;
+  if (expiry >= 120) score += 3;
+
+  // 🔥 РІЗНИЦЯ МІЖ OTC І NON-OTC
+  if (market === "otc") {
+    score -= 1;                 // OTC менш стабільний
+    score += (Math.random() - 0.5) * 0.5; // менше шуму
+  } else {
+    score += 1;                 // real market сильніший
+    score += (Math.random() - 0.5);       // більше імпульсу
+  }
+
+  // напрям
+  const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
+
+  // confidence від сили
+  let confidence = Math.min(
+    95,
+    Math.max(55, Math.floor(60 + score * 10))
+  );
+
+  // фільтр якості
+  if (confidence < minConf) {
+    document.getElementById("result").innerHTML = "⏳ WAIT";
+    return;
+  }
+
+  // анти-спам
+  lastDirections.push(direction);
+  if (lastDirections.length > 6) lastDirections.shift();
+
+  const same = lastDirections.filter(d => d === direction).length;
+  if (same >= 5) {
+    document.getElementById("result").innerHTML = "⏳ WAIT";
+    return;
+  }
+
+  document.getElementById("result").innerHTML =
+    direction + "<br>" +
+    "Market: " + (market === "otc" ? "OTC" : "NON-OTC") + "<br>" +
+    "Confidence: " + confidence + "%<br>" +
+    "Expiry: " + expiry + "s";
+}
+</script>
+ {
   const expiry = parseInt(document.getElementById("expiry").value);
   const minConf = parseInt(document.getElementById("confidence").value);
 
@@ -118,4 +179,5 @@ function getSignal() {
 </script>
 </body>
 </html>
+
 
