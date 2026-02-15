@@ -20,13 +20,10 @@
       background:#020617;
       padding:30px;
       border-radius:12px;
-      width:320px;
+      width:330px;
       box-shadow:0 0 20px rgba(0,0,0,0.5);
     }
-    h2 {
-      text-align:center;
-      margin-bottom:15px;
-    }
+    h2 { text-align:center; margin-bottom:15px; }
     select, button {
       width:100%;
       padding:10px;
@@ -46,7 +43,7 @@
       margin-top:20px;
       text-align:center;
       font-size:18px;
-      min-height:60px;
+      min-height:70px;
     }
   </style>
 </head>
@@ -59,6 +56,16 @@
     <select id="market">
       <option value="otc">OTC</option>
       <option value="live">Non-OTC</option>
+    </select>
+
+    <!-- Pair -->
+    <select id="pair">
+      <option value="EURUSD">EUR/USD</option>
+      <option value="GBPUSD">GBP/USD</option>
+      <option value="USDJPY">USD/JPY</option>
+      <option value="AUDUSD">AUD/USD</option>
+      <option value="USDCAD">USD/CAD</option>
+      <option value="EURJPY">EUR/JPY</option>
     </select>
 
     <!-- Expiry -->
@@ -86,20 +93,34 @@
 <script>
 let lastDirections = [];
 
+// ваги по парах (поведінка різна)
+const pairWeight = {
+  EURUSD: 1.2,
+  GBPUSD: 1.0,
+  USDJPY: 0.9,
+  AUDUSD: 0.8,
+  USDCAD: 0.7,
+  EURJPY: 1.1
+};
+
 function getSignal() {
+  const market = document.getElementById("market").value;
+  const pair = document.getElementById("pair").value;
   const expiry = parseInt(document.getElementById("expiry").value);
   const minConf = parseInt(document.getElementById("confidence").value);
-  const market = document.getElementById("market").value;
 
   let score = 0;
 
-  // логіка під таймфрейм
+  // логіка таймфрейму
   if (expiry <= 15) score -= 1;
   if (expiry === 30) score += 1;
   if (expiry >= 60) score += 2;
   if (expiry >= 120) score += 3;
 
-  // OTC / NON-OTC логіка
+  // логіка по парі
+  score *= pairWeight[pair] || 1;
+
+  // OTC / NON-OTC
   if (market === "otc") {
     score -= 1;
     score += (Math.random() - 0.5) * 0.5;
@@ -123,7 +144,6 @@ function getSignal() {
   // анти-спам
   lastDirections.push(direction);
   if (lastDirections.length > 6) lastDirections.shift();
-
   const same = lastDirections.filter(d => d === direction).length;
   if (same >= 5) {
     document.getElementById("result").innerHTML = "⏳ WAIT";
@@ -132,6 +152,7 @@ function getSignal() {
 
   document.getElementById("result").innerHTML =
     direction + "<br>" +
+    "Pair: " + pair + "<br>" +
     "Market: " + (market === "otc" ? "OTC" : "NON-OTC") + "<br>" +
     "Confidence: " + confidence + "%<br>" +
     "Expiry: " + expiry + "s";
@@ -140,5 +161,6 @@ function getSignal() {
 
 </body>
 </html>
+
 
 
