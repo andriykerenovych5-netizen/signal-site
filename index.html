@@ -20,7 +20,7 @@
       background:#020617;
       padding:30px;
       border-radius:12px;
-      width:340px;
+      width:360px;
       box-shadow:0 0 20px rgba(0,0,0,0.5);
     }
     h2 { text-align:center; margin-bottom:15px; }
@@ -43,7 +43,12 @@
       margin-top:20px;
       text-align:center;
       font-size:18px;
-      min-height:80px;
+      min-height:120px;
+    }
+    .timer {
+      font-size:22px;
+      margin-top:10px;
+      color:#38bdf8;
     }
   </style>
 </head>
@@ -98,6 +103,7 @@
 
 <script>
 let lastDirections = [];
+let countdownInterval = null;
 
 const pairWeight = {
   EURUSD: 1.2,
@@ -107,6 +113,24 @@ const pairWeight = {
   USDCAD: 0.7,
   EURJPY: 1.1
 };
+
+function startTimer(seconds) {
+  let remaining = seconds;
+  const timerEl = document.getElementById("timer");
+
+  clearInterval(countdownInterval);
+  timerEl.innerText = "Enter in: " + remaining + "s";
+
+  countdownInterval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      timerEl.innerText = "ENTER NOW ⏱️";
+    } else {
+      timerEl.innerText = "Enter in: " + remaining + "s";
+    }
+  }, 1000);
+}
 
 function getSignal() {
   const mode = document.getElementById("mode").value;
@@ -137,9 +161,9 @@ function getSignal() {
 
   // SAFE / AGGRESSIVE
   if (mode === "safe") {
-    score *= 0.8;                 // занижуємо ризик
+    score *= 0.8;
   } else {
-    score *= 1.2;                 // більше імпульсу
+    score *= 1.2;
     score += (Math.random() - 0.5);
   }
 
@@ -164,19 +188,21 @@ function getSignal() {
     return;
   }
 
+  // 🔥 таймер входу (20–40% від expiry)
+  const entryDelay = Math.max(1, Math.floor(expiry * (0.2 + Math.random() * 0.2)));
+
   document.getElementById("result").innerHTML =
     direction + "<br>" +
-    "Mode: " + (mode === "safe" ? "SAFE" : "AGGRESSIVE") + "<br>" +
     "Pair: " + pair + "<br>" +
     "Market: " + (market === "otc" ? "OTC" : "NON-OTC") + "<br>" +
     "Confidence: " + confidence + "%<br>" +
-    "Expiry: " + expiry + "s";
+    "Expiry: " + expiry + "s<br>" +
+    "<div class='timer' id='timer'></div>";
+
+  startTimer(entryDelay);
 }
 </script>
 
 </body>
 </html>
-
-
-
 
