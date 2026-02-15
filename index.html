@@ -1,246 +1,220 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <title>Signal App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>AI Signal App</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      background:#0f172a;
-      color:#e5e7eb;
-      font-family:Arial, sans-serif;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
-      margin:0;
-    }
-    .box {
-      background:#020617;
-      padding:30px;
-      border-radius:12px;
-      width:380px;
-    }
-    h2 { text-align:center; }
-    select, button {
-      width:100%;
-      padding:10px;
-      margin-top:10px;
-      border-radius:6px;
-      border:none;
-      font-size:15px;
-    }
-    button {
-      background:#22c55e;
-      color:#000;
-      font-size:18px;
-      cursor:pointer;
-    }
-    .signal {
-      margin-top:20px;
-      text-align:center;
-      font-size:18px;
-      min-height:130px;
-    }
-    .timer {
-      font-size:22px;
-      margin-top:10px;
-      color:#38bdf8;
-    }
-  </style>
+<style>
+body{
+  background:#0f172a;
+  color:#e5e7eb;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+}
+.box{
+  background:#020617;
+  padding:20px;
+  border-radius:12px;
+  width:390px;
+}
+h2{text-align:center;margin-bottom:10px;}
+.tabs{
+  display:flex;
+  margin-top:8px;
+}
+.tab{
+  flex:1;
+  padding:8px;
+  text-align:center;
+  cursor:pointer;
+  background:#020617;
+  border:1px solid #334155;
+}
+.tab.active{
+  background:#22c55e;
+  color:#000;
+}
+select,button{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+}
+button{
+  background:#22c55e;
+  font-size:18px;
+  cursor:pointer;
+}
+.signal{
+  margin-top:15px;
+  text-align:center;
+  font-size:17px;
+  min-height:130px;
+}
+.timer{color:#38bdf8;font-size:20px;margin-top:5px;}
+.ai{margin-top:5px;font-size:15px;}
+</style>
 </head>
 
 <body>
 <div class="box">
-  <h2>GET SIGNAL</h2>
+<h2>AI SIGNAL</h2>
 
-  <!-- Mode -->
-  <select id="mode">
-    <option value="safe">SAFE MODE</option>
-    <option value="aggressive">AGGRESSIVE MODE</option>
-  </select>
+<!-- MODE -->
+<select id="mode">
+  <option value="safe">SAFE MODE</option>
+  <option value="aggressive">AGGRESSIVE MODE</option>
+</select>
 
-  <!-- Asset -->
-  <select id="asset" onchange="updatePairs()">
-    <option value="forex">FOREX</option>
-    <option value="crypto">CRYPTO</option>
-  </select>
+<!-- ASSET TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="setAsset('forex')">FOREX</div>
+  <div class="tab" onclick="setAsset('crypto')">CRYPTO</div>
+</div>
 
-  <!-- Market -->
-  <select id="market" onchange="updatePairs()">
-    <option value="live">Non-OTC</option>
-    <option value="otc">OTC</option>
-  </select>
+<!-- MARKET TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="setMarket('live')">LIVE</div>
+  <div class="tab" onclick="setMarket('otc')">OTC</div>
+</div>
 
-  <!-- Pair -->
-  <select id="pair"></select>
+<select id="pair"></select>
 
-  <!-- Expiry -->
-  <select id="expiry">
-    <option value="5">5 sec</option>
-    <option value="15">15 sec</option>
-    <option value="30">30 sec</option>
-    <option value="60" selected>60 sec</option>
-    <option value="120">120 sec</option>
-    <option value="180">180 sec</option>
-  </select>
+<select id="expiry">
+  <option value="5">5 sec</option>
+  <option value="15">15 sec</option>
+  <option value="30">30 sec</option>
+  <option value="60" selected>60 sec</option>
+  <option value="120">120 sec</option>
+  <option value="180">180 sec</option>
+</select>
 
-  <!-- Confidence -->
-  <select id="confidence">
-    <option value="60">Min 60%</option>
-    <option value="70">Min 70%</option>
-    <option value="80">Min 80%</option>
-  </select>
+<select id="confidence">
+  <option value="60">Min 60%</option>
+  <option value="70">Min 70%</option>
+  <option value="80">Min 80%</option>
+</select>
 
-  <button onclick="getSignal()">GET SIGNAL</button>
+<button onclick="getSignal()">GET AI SIGNAL</button>
 
-  <div class="signal" id="result">—</div>
+<div class="signal" id="result">—</div>
 </div>
 
 <script>
-let lastDirections = [];
-let countdownInterval = null;
+let asset="forex", market="live", last=[], timerInt=null;
 
-/* ===== PAIRS ===== */
-
-const forexLive = [
-  "EUR/USD","GBP/USD","USD/JPY","AUD/USD",
-  "USD/CAD","EUR/JPY","EUR/GBP","GBP/JPY"
-];
-
-const forexOTC = forexLive.map(p => p + " OTC");
-
-const cryptoLive = [
-  "BTC/USD","ETH/USD","LTC/USD","XRP/USD","BNB/USD"
-];
-
-const cryptoOTC = cryptoLive.map(p => p + " OTC");
-
-/* ===== WEIGHTS ===== */
-
-const pairWeight = {
-  "EUR/USD":1.2,"GBP/USD":1.0,"USD/JPY":0.9,
-  "AUD/USD":0.8,"USD/CAD":0.7,"EUR/JPY":1.1,
-  "EUR/GBP":0.9,"GBP/JPY":1.0,
-
-  "BTC/USD":0.6,"ETH/USD":0.65,"LTC/USD":0.55,
-  "XRP/USD":0.5,"BNB/USD":0.6
+/* PAIRS */
+const pairs={
+  forex:{
+    live:["EUR/USD","GBP/USD","USD/JPY","EUR/JPY","GBP/JPY"],
+    otc:["EUR/USD OTC","GBP/USD OTC","USD/JPY OTC","EUR/JPY OTC","GBP/JPY OTC"]
+  },
+  crypto:{
+    live:["BTC/USD","ETH/USD","LTC/USD","XRP/USD"],
+    otc:["BTC/USD OTC","ETH/USD OTC","LTC/USD OTC","XRP/USD OTC"]
+  }
 };
 
-/* ===== FUNCTIONS ===== */
+/* AI WEIGHTS */
+const weight={
+  "EUR/USD":1.2,"GBP/USD":1.0,"USD/JPY":0.9,
+  "EUR/JPY":1.1,"GBP/JPY":1.0,
+  "BTC/USD":0.6,"ETH/USD":0.65,"LTC/USD":0.55,"XRP/USD":0.5
+};
 
-function updatePairs() {
-  const asset = document.getElementById("asset").value;
-  const market = document.getElementById("market").value;
-  const pairSelect = document.getElementById("pair");
-  pairSelect.innerHTML = "";
+function setAsset(a){
+  asset=a;
+  document.querySelectorAll(".tabs")[0].querySelectorAll(".tab")
+    .forEach(t=>t.classList.remove("active"));
+  event.target.classList.add("active");
+  updatePairs();
+}
 
-  let list = [];
+function setMarket(m){
+  market=m;
+  document.querySelectorAll(".tabs")[1].querySelectorAll(".tab")
+    .forEach(t=>t.classList.remove("active"));
+  event.target.classList.add("active");
+  updatePairs();
+}
 
-  if (asset === "forex") {
-    list = market === "otc" ? forexOTC : forexLive;
-  } else {
-    list = market === "otc" ? cryptoOTC : cryptoLive;
-  }
-
-  list.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p;
-    opt.textContent = p;
-    pairSelect.appendChild(opt);
+function updatePairs(){
+  const s=document.getElementById("pair");
+  s.innerHTML="";
+  pairs[asset][market].forEach(p=>{
+    let o=document.createElement("option");
+    o.textContent=p;o.value=p;
+    s.appendChild(o);
   });
 }
 
-function startTimer(seconds) {
-  let remaining = seconds;
-  const timerEl = document.getElementById("timer");
-  clearInterval(countdownInterval);
-
-  timerEl.innerText = "Enter in: " + remaining + "s";
-
-  countdownInterval = setInterval(() => {
-    remaining--;
-    if (remaining <= 0) {
-      clearInterval(countdownInterval);
-      timerEl.innerText = "ENTER NOW ⏱️";
-    } else {
-      timerEl.innerText = "Enter in: " + remaining + "s";
-    }
-  }, 1000);
+function startTimer(sec){
+  clearInterval(timerInt);
+  let t=sec;
+  const el=document.getElementById("timer");
+  el.innerText="Enter in "+t+"s";
+  timerInt=setInterval(()=>{
+    t--;
+    el.innerText=t<=0?"ENTER NOW":"Enter in "+t+"s";
+    if(t<=0)clearInterval(timerInt);
+  },1000);
 }
 
-function getSignal() {
-  const mode = document.getElementById("mode").value;
-  const asset = document.getElementById("asset").value;
-  const market = document.getElementById("market").value;
-  const pair = document.getElementById("pair").value;
-  const expiry = parseInt(document.getElementById("expiry").value);
-  const minConf = parseInt(document.getElementById("confidence").value);
+function getSignal(){
+  const pair=document.getElementById("pair").value.replace(" OTC","");
+  const expiry=+document.getElementById("expiry").value;
+  const minConf=+document.getElementById("confidence").value;
+  const mode=document.getElementById("mode").value;
 
-  let score = 0;
+  /* === AI CORE === */
+  let aiScore=0;
+  aiScore+=expiry>=60?2:-1;
+  aiScore+=market==="live"?1:-1;
+  aiScore+=asset==="crypto"?-1:1;
+  aiScore*=weight[pair]||1;
+  aiScore+=Math.random()-0.5;
+  if(mode==="aggressive")aiScore*=1.3;
 
-  // timeframe logic
-  if (expiry <= 15) score -= 1;
-  if (expiry === 30) score += 1;
-  if (expiry >= 60) score += 2;
-  if (expiry >= 120) score += 3;
+  const dir=aiScore>=1?"⬆ CALL":"⬇ PUT";
+  const conf=Math.min(95,Math.max(55,Math.floor(60+aiScore*10)));
 
-  // pair weight
-  const basePair = pair.replace(" OTC","");
-  score *= pairWeight[basePair] || 1;
+  let eff="LOW";
+  if(conf>=75)eff="MEDIUM";
+  if(conf>=85)eff="HIGH";
 
-  // asset type
-  if (asset === "crypto") score -= 1;
-
-  // market
-  if (market === "otc") {
-    score -= 1;
-    score += (Math.random() - 0.5) * 0.5;
-  } else {
-    score += 1;
-    score += (Math.random() - 0.5);
-  }
-
-  // mode
-  score *= mode === "safe" ? 0.8 : 1.25;
-
-  const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
-
-  let confidence = Math.min(
-    95,
-    Math.max(55, Math.floor(60 + score * 10))
-  );
-
-  if (confidence < minConf) {
-    document.getElementById("result").innerHTML = "⏳ WAIT";
+  if(conf<minConf){
+    result.innerHTML="⏳ WAIT";
     return;
   }
 
-  lastDirections.push(direction);
-  if (lastDirections.length > 6) lastDirections.shift();
-  if (lastDirections.filter(d => d === direction).length >= 5) {
-    document.getElementById("result").innerHTML = "⏳ WAIT";
+  last.push(dir); if(last.length>6)last.shift();
+  if(last.filter(d=>d===dir).length>=5){
+    result.innerHTML="⏳ WAIT";
     return;
   }
 
-  const entryDelay = Math.max(1, Math.floor(expiry * (0.2 + Math.random() * 0.2)));
+  const delay=Math.max(1,Math.floor(expiry*0.25));
 
-  document.getElementById("result").innerHTML =
-    direction + "<br>" +
-    "Asset: " + asset.toUpperCase() + "<br>" +
-    "Pair: " + pair + "<br>" +
-    "Market: " + (market === "otc" ? "OTC" : "NON-OTC") + "<br>" +
-    "Confidence: " + confidence + "%<br>" +
-    "Expiry: " + expiry + "s<br>" +
-    "<div class='timer' id='timer'></div>";
+  result.innerHTML=
+    dir+"<br>"+
+    "Pair: "+pair+"<br>"+
+    "AI Confidence: "+conf+"%<br>"+
+    "AI Efficiency: "+eff+"<br>"+
+    "<div class='timer' id='timer'></div>"+
+    "<div class='ai'>AI Engine v1.0</div>";
 
-  startTimer(entryDelay);
+  startTimer(delay);
 }
 
 updatePairs();
 </script>
-
 </body>
 </html>
+
 
