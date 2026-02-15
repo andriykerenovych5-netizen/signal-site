@@ -65,16 +65,57 @@
   </div>
 
 <script>
-function getSignal(){
-  const dir = Math.random() > 0.5 ? "⬆️ CALL" : "⬇️ PUT";
-  const conf = Math.floor(60 + Math.random()*30);
-  const exp = document.getElementById("expiry").value;
+<script>
+let lastDirections = [];
+
+function getSignal() {
+  const expiry = parseInt(document.getElementById("expiry").value);
+  const minConf = parseInt(document.getElementById("confidence").value);
+
+  let score = 0;
+
+  // логіка під таймфрейм
+  if (expiry <= 15) score -= 1;
+  if (expiry === 30) score += 1;
+  if (expiry >= 60) score += 2;
+  if (expiry >= 120) score += 3;
+
+  // ринковий шум (мінімальний)
+  score += (Math.random() - 0.5);
+
+  // напрям
+  const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
+
+  // confidence від сили сигналу
+  let confidence = Math.min(
+    95,
+    Math.max(55, Math.floor(60 + score * 10))
+  );
+
+  // фільтр мін. якості
+  if (confidence < minConf) {
+    document.getElementById("result").innerHTML = "⏳ WAIT";
+    return;
+  }
+
+  // анти-спам
+  lastDirections.push(direction);
+  if (lastDirections.length > 6) lastDirections.shift();
+
+  const same = lastDirections.filter(d => d === direction).length;
+  if (same >= 5) {
+    document.getElementById("result").innerHTML = "⏳ WAIT";
+    return;
+  }
 
   document.getElementById("result").innerHTML =
-    dir + "<br>" +
-    "Confidence: " + conf + "%<br>" +
-    "Expiry: " + exp + "s";
+    direction + "<br>" +
+    "Confidence: " + confidence + "%<br>" +
+    "Expiry: " + expiry + "s";
 }
+</script>
+
 </script>
 </body>
 </html>
+
