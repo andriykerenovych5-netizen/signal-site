@@ -20,7 +20,7 @@
       background:#020617;
       padding:30px;
       border-radius:12px;
-      width:360px;
+      width:380px;
     }
     h2 { text-align:center; }
     select, button {
@@ -41,7 +41,7 @@
       margin-top:20px;
       text-align:center;
       font-size:18px;
-      min-height:120px;
+      min-height:130px;
     }
     .timer {
       font-size:22px;
@@ -55,18 +55,28 @@
 <div class="box">
   <h2>GET SIGNAL</h2>
 
+  <!-- Mode -->
   <select id="mode">
     <option value="safe">SAFE MODE</option>
     <option value="aggressive">AGGRESSIVE MODE</option>
   </select>
 
+  <!-- Asset -->
+  <select id="asset" onchange="updatePairs()">
+    <option value="forex">FOREX</option>
+    <option value="crypto">CRYPTO</option>
+  </select>
+
+  <!-- Market -->
   <select id="market" onchange="updatePairs()">
     <option value="live">Non-OTC</option>
     <option value="otc">OTC</option>
   </select>
 
+  <!-- Pair -->
   <select id="pair"></select>
 
+  <!-- Expiry -->
   <select id="expiry">
     <option value="5">5 sec</option>
     <option value="15">15 sec</option>
@@ -76,6 +86,7 @@
     <option value="180">180 sec</option>
   </select>
 
+  <!-- Confidence -->
   <select id="confidence">
     <option value="60">Min 60%</option>
     <option value="70">Min 70%</option>
@@ -91,28 +102,47 @@
 let lastDirections = [];
 let countdownInterval = null;
 
-const livePairs = [
+/* ===== PAIRS ===== */
+
+const forexLive = [
   "EUR/USD","GBP/USD","USD/JPY","AUD/USD",
   "USD/CAD","EUR/JPY","EUR/GBP","GBP/JPY"
 ];
 
-const otcPairs = [
-  "EUR/USD OTC","GBP/USD OTC","USD/JPY OTC",
-  "AUD/USD OTC","USD/CAD OTC","EUR/JPY OTC",
-  "EUR/GBP OTC","GBP/JPY OTC"
+const forexOTC = forexLive.map(p => p + " OTC");
+
+const cryptoLive = [
+  "BTC/USD","ETH/USD","LTC/USD","XRP/USD","BNB/USD"
 ];
 
+const cryptoOTC = cryptoLive.map(p => p + " OTC");
+
+/* ===== WEIGHTS ===== */
+
 const pairWeight = {
-  "EUR/USD":1.2,"GBP/USD":1.0,"USD/JPY":0.9,"AUD/USD":0.8,
-  "USD/CAD":0.7,"EUR/JPY":1.1,"EUR/GBP":0.9,"GBP/JPY":1.0
+  "EUR/USD":1.2,"GBP/USD":1.0,"USD/JPY":0.9,
+  "AUD/USD":0.8,"USD/CAD":0.7,"EUR/JPY":1.1,
+  "EUR/GBP":0.9,"GBP/JPY":1.0,
+
+  "BTC/USD":0.6,"ETH/USD":0.65,"LTC/USD":0.55,
+  "XRP/USD":0.5,"BNB/USD":0.6
 };
 
+/* ===== FUNCTIONS ===== */
+
 function updatePairs() {
+  const asset = document.getElementById("asset").value;
   const market = document.getElementById("market").value;
   const pairSelect = document.getElementById("pair");
   pairSelect.innerHTML = "";
 
-  const list = market === "otc" ? otcPairs : livePairs;
+  let list = [];
+
+  if (asset === "forex") {
+    list = market === "otc" ? forexOTC : forexLive;
+  } else {
+    list = market === "otc" ? cryptoOTC : cryptoLive;
+  }
 
   list.forEach(p => {
     const opt = document.createElement("option");
@@ -142,6 +172,7 @@ function startTimer(seconds) {
 
 function getSignal() {
   const mode = document.getElementById("mode").value;
+  const asset = document.getElementById("asset").value;
   const market = document.getElementById("market").value;
   const pair = document.getElementById("pair").value;
   const expiry = parseInt(document.getElementById("expiry").value);
@@ -149,14 +180,20 @@ function getSignal() {
 
   let score = 0;
 
+  // timeframe logic
   if (expiry <= 15) score -= 1;
   if (expiry === 30) score += 1;
   if (expiry >= 60) score += 2;
   if (expiry >= 120) score += 3;
 
+  // pair weight
   const basePair = pair.replace(" OTC","");
   score *= pairWeight[basePair] || 1;
 
+  // asset type
+  if (asset === "crypto") score -= 1;
+
+  // market
   if (market === "otc") {
     score -= 1;
     score += (Math.random() - 0.5) * 0.5;
@@ -165,12 +202,15 @@ function getSignal() {
     score += (Math.random() - 0.5);
   }
 
-  if (mode === "safe") score *= 0.8;
-  else score *= 1.2;
+  // mode
+  score *= mode === "safe" ? 0.8 : 1.25;
 
   const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
 
-  let confidence = Math.min(95, Math.max(55, Math.floor(60 + score * 10))));
+  let confidence = Math.min(
+    95,
+    Math.max(55, Math.floor(60 + score * 10))
+  );
 
   if (confidence < minConf) {
     document.getElementById("result").innerHTML = "⏳ WAIT";
@@ -188,6 +228,7 @@ function getSignal() {
 
   document.getElementById("result").innerHTML =
     direction + "<br>" +
+    "Asset: " + asset.toUpperCase() + "<br>" +
     "Pair: " + pair + "<br>" +
     "Market: " + (market === "otc" ? "OTC" : "NON-OTC") + "<br>" +
     "Confidence: " + confidence + "%<br>" +
@@ -202,6 +243,4 @@ updatePairs();
 
 </body>
 </html>
-
-
 
