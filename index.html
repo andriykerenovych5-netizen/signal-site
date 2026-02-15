@@ -65,16 +65,45 @@
   </div>
 
 <script>
-function getSignal(){
-  const dir = Math.random() > 0.5 ? "⬆️ CALL" : "⬇️ PUT";
-  const conf = Math.floor(60 + Math.random()*30);
-  const exp = document.getElementById("expiry").value;
+<script>
+let lastSignals = [];
 
-  document.getElementById("result").innerHTML =
-    dir + "<br>" +
-    "Confidence: " + conf + "%<br>" +
-    "Expiry: " + exp + "s";
+function getSignal() {
+  const tf = document.getElementById("tf").value;
+  const pair = document.getElementById("pair").value;
+
+  // базова логіка ваг
+  let score = 0;
+
+  // таймфрейм фільтр
+  if (tf.includes("5")) score -= 1;
+  if (tf.includes("15")) score += 0;
+  if (tf.includes("30")) score += 1;
+  if (tf.includes("60")) score += 2;
+  if (tf.includes("120")) score += 3;
+  if (tf.includes("180")) score += 4;
+
+  // псевдо-маркет шум
+  score += Math.random() * 2 - 1;
+
+  const signal = score > 1 ? "⬆️ CALL" : "⬇️ PUT";
+
+  // анти-спам фільтр
+  lastSignals.push(signal);
+  if (lastSignals.length > 5) lastSignals.shift();
+
+  const same = lastSignals.filter(s => s === signal).length;
+  if (same >= 4) {
+    document.getElementById("signal").innerText = "⏳ WAIT";
+    return;
+  }
+
+  document.getElementById("signal").innerText = signal;
+}
+</script>
+
 }
 </script>
 </body>
 </html>
+
