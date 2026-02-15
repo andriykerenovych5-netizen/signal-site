@@ -21,9 +21,8 @@
       padding:30px;
       border-radius:12px;
       width:360px;
-      box-shadow:0 0 20px rgba(0,0,0,0.5);
     }
-    h2 { text-align:center; margin-bottom:15px; }
+    h2 { text-align:center; }
     select, button {
       width:100%;
       padding:10px;
@@ -37,7 +36,6 @@
       color:#000;
       font-size:18px;
       cursor:pointer;
-      margin-top:15px;
     }
     .signal {
       margin-top:20px;
@@ -54,71 +52,81 @@
 </head>
 
 <body>
-  <div class="box">
-    <h2>GET SIGNAL</h2>
+<div class="box">
+  <h2>GET SIGNAL</h2>
 
-    <!-- Mode -->
-    <select id="mode">
-      <option value="safe">SAFE MODE</option>
-      <option value="aggressive">AGGRESSIVE MODE</option>
-    </select>
+  <select id="mode">
+    <option value="safe">SAFE MODE</option>
+    <option value="aggressive">AGGRESSIVE MODE</option>
+  </select>
 
-    <!-- Market -->
-    <select id="market">
-      <option value="otc">OTC</option>
-      <option value="live">Non-OTC</option>
-    </select>
+  <select id="market" onchange="updatePairs()">
+    <option value="live">Non-OTC</option>
+    <option value="otc">OTC</option>
+  </select>
 
-    <!-- Pair -->
-    <select id="pair">
-      <option value="EURUSD">EUR/USD</option>
-      <option value="GBPUSD">GBP/USD</option>
-      <option value="USDJPY">USD/JPY</option>
-      <option value="AUDUSD">AUD/USD</option>
-      <option value="USDCAD">USD/CAD</option>
-      <option value="EURJPY">EUR/JPY</option>
-    </select>
+  <select id="pair"></select>
 
-    <!-- Expiry -->
-    <select id="expiry">
-      <option value="5">5 sec</option>
-      <option value="15">15 sec</option>
-      <option value="30">30 sec</option>
-      <option value="60" selected>60 sec</option>
-      <option value="120">120 sec</option>
-      <option value="180">180 sec</option>
-    </select>
+  <select id="expiry">
+    <option value="5">5 sec</option>
+    <option value="15">15 sec</option>
+    <option value="30">30 sec</option>
+    <option value="60" selected>60 sec</option>
+    <option value="120">120 sec</option>
+    <option value="180">180 sec</option>
+  </select>
 
-    <!-- Confidence -->
-    <select id="confidence">
-      <option value="60">Min 60%</option>
-      <option value="70">Min 70%</option>
-      <option value="80">Min 80%</option>
-    </select>
+  <select id="confidence">
+    <option value="60">Min 60%</option>
+    <option value="70">Min 70%</option>
+    <option value="80">Min 80%</option>
+  </select>
 
-    <button onclick="getSignal()">GET SIGNAL</button>
+  <button onclick="getSignal()">GET SIGNAL</button>
 
-    <div class="signal" id="result">—</div>
-  </div>
+  <div class="signal" id="result">—</div>
+</div>
 
 <script>
 let lastDirections = [];
 let countdownInterval = null;
 
+const livePairs = [
+  "EUR/USD","GBP/USD","USD/JPY","AUD/USD",
+  "USD/CAD","EUR/JPY","EUR/GBP","GBP/JPY"
+];
+
+const otcPairs = [
+  "EUR/USD OTC","GBP/USD OTC","USD/JPY OTC",
+  "AUD/USD OTC","USD/CAD OTC","EUR/JPY OTC",
+  "EUR/GBP OTC","GBP/JPY OTC"
+];
+
 const pairWeight = {
-  EURUSD: 1.2,
-  GBPUSD: 1.0,
-  USDJPY: 0.9,
-  AUDUSD: 0.8,
-  USDCAD: 0.7,
-  EURJPY: 1.1
+  "EUR/USD":1.2,"GBP/USD":1.0,"USD/JPY":0.9,"AUD/USD":0.8,
+  "USD/CAD":0.7,"EUR/JPY":1.1,"EUR/GBP":0.9,"GBP/JPY":1.0
 };
+
+function updatePairs() {
+  const market = document.getElementById("market").value;
+  const pairSelect = document.getElementById("pair");
+  pairSelect.innerHTML = "";
+
+  const list = market === "otc" ? otcPairs : livePairs;
+
+  list.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    pairSelect.appendChild(opt);
+  });
+}
 
 function startTimer(seconds) {
   let remaining = seconds;
   const timerEl = document.getElementById("timer");
-
   clearInterval(countdownInterval);
+
   timerEl.innerText = "Enter in: " + remaining + "s";
 
   countdownInterval = setInterval(() => {
@@ -141,16 +149,14 @@ function getSignal() {
 
   let score = 0;
 
-  // таймфрейм
   if (expiry <= 15) score -= 1;
   if (expiry === 30) score += 1;
   if (expiry >= 60) score += 2;
   if (expiry >= 120) score += 3;
 
-  // пара
-  score *= pairWeight[pair] || 1;
+  const basePair = pair.replace(" OTC","");
+  score *= pairWeight[basePair] || 1;
 
-  // OTC / NON-OTC
   if (market === "otc") {
     score -= 1;
     score += (Math.random() - 0.5) * 0.5;
@@ -159,36 +165,25 @@ function getSignal() {
     score += (Math.random() - 0.5);
   }
 
-  // SAFE / AGGRESSIVE
-  if (mode === "safe") {
-    score *= 0.8;
-  } else {
-    score *= 1.2;
-    score += (Math.random() - 0.5);
-  }
+  if (mode === "safe") score *= 0.8;
+  else score *= 1.2;
 
   const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
 
-  let confidence = Math.min(
-    95,
-    Math.max(55, Math.floor(60 + score * 10))
-  );
+  let confidence = Math.min(95, Math.max(55, Math.floor(60 + score * 10))));
 
   if (confidence < minConf) {
     document.getElementById("result").innerHTML = "⏳ WAIT";
     return;
   }
 
-  // анти-спам
   lastDirections.push(direction);
   if (lastDirections.length > 6) lastDirections.shift();
-  const same = lastDirections.filter(d => d === direction).length;
-  if (same >= 5) {
+  if (lastDirections.filter(d => d === direction).length >= 5) {
     document.getElementById("result").innerHTML = "⏳ WAIT";
     return;
   }
 
-  // 🔥 таймер входу (20–40% від expiry)
   const entryDelay = Math.max(1, Math.floor(expiry * (0.2 + Math.random() * 0.2)));
 
   document.getElementById("result").innerHTML =
@@ -201,8 +196,12 @@ function getSignal() {
 
   startTimer(entryDelay);
 }
+
+updatePairs();
 </script>
 
 </body>
 </html>
+
+
 
