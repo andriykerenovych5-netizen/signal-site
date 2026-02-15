@@ -65,91 +65,16 @@
   </div>
 
 <script>
-<script>
-<script>
-let lastDirections = [];
-
-function getSignal() {
-  const expiry = parseInt(document.getElementById("expiry").value);
-  const minConf = parseInt(document.getElementById("confidence").value);
-
-  let score = 0;
-
-  // логіка під таймфрейм
-  if (expiry <= 15) score -= 1;
-  if (expiry === 30) score += 1;
-  if (expiry >= 60) score += 2;
-  if (expiry >= 120) score += 3;
-
-  // контроль шуму
-  score += (Math.random() - 0.5);
-
-  // напрям
-  const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
-
-  // confidence НЕ random, а від score
-  let confidence = Math.min(
-    95,
-    Math.max(55, Math.floor(60 + score * 10))
-  );
-
-  // фільтр мінімальної якості
-  if (confidence < minConf) {
-    document.getElementById("result").innerHTML = "⏳ WAIT";
-    return;
-  }
-
-  // анти-спам (не більше 4 однакових)
-  lastDirections.push(direction);
-  if (lastDirections.length > 6) lastDirections.shift();
-
-  const same = lastDirections.filter(d => d === direction).length;
-  if (same >= 5) {
-    document.getElementById("result").innerHTML = "⏳ WAIT";
-    return;
-  }
+function getSignal(){
+  const dir = Math.random() > 0.5 ? "⬆️ CALL" : "⬇️ PUT";
+  const conf = Math.floor(60 + Math.random()*30);
+  const exp = document.getElementById("expiry").value;
 
   document.getElementById("result").innerHTML =
-    direction + "<br>" +
-    "Confidence: " + confidence + "%<br>" +
-    "Expiry: " + expiry + "s";
-}
-</script>
-
-
-  // базова логіка ваг
-  let score = 0;
-
-  // таймфрейм фільтр
-  if (tf.includes("5")) score -= 1;
-  if (tf.includes("15")) score += 0;
-  if (tf.includes("30")) score += 1;
-  if (tf.includes("60")) score += 2;
-  if (tf.includes("120")) score += 3;
-  if (tf.includes("180")) score += 4;
-
-  // псевдо-маркет шум
-  score += Math.random() * 2 - 1;
-
-  const signal = score > 1 ? "⬆️ CALL" : "⬇️ PUT";
-
-  // анти-спам фільтр
-  lastSignals.push(signal);
-  if (lastSignals.length > 5) lastSignals.shift();
-
-  const same = lastSignals.filter(s => s === signal).length;
-  if (same >= 4) {
-    document.getElementById("signal").innerText = "⏳ WAIT";
-    return;
-  }
-
-  document.getElementById("signal").innerText = signal;
-}
-</script>
-
+    dir + "<br>" +
+    "Confidence: " + conf + "%<br>" +
+    "Expiry: " + exp + "s";
 }
 </script>
 </body>
 </html>
-
-
