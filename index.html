@@ -20,7 +20,7 @@
       background:#020617;
       padding:30px;
       border-radius:12px;
-      width:330px;
+      width:340px;
       box-shadow:0 0 20px rgba(0,0,0,0.5);
     }
     h2 { text-align:center; margin-bottom:15px; }
@@ -43,7 +43,7 @@
       margin-top:20px;
       text-align:center;
       font-size:18px;
-      min-height:70px;
+      min-height:80px;
     }
   </style>
 </head>
@@ -51,6 +51,12 @@
 <body>
   <div class="box">
     <h2>GET SIGNAL</h2>
+
+    <!-- Mode -->
+    <select id="mode">
+      <option value="safe">SAFE MODE</option>
+      <option value="aggressive">AGGRESSIVE MODE</option>
+    </select>
 
     <!-- Market -->
     <select id="market">
@@ -93,7 +99,6 @@
 <script>
 let lastDirections = [];
 
-// ваги по парах (поведінка різна)
 const pairWeight = {
   EURUSD: 1.2,
   GBPUSD: 1.0,
@@ -104,6 +109,7 @@ const pairWeight = {
 };
 
 function getSignal() {
+  const mode = document.getElementById("mode").value;
   const market = document.getElementById("market").value;
   const pair = document.getElementById("pair").value;
   const expiry = parseInt(document.getElementById("expiry").value);
@@ -111,13 +117,13 @@ function getSignal() {
 
   let score = 0;
 
-  // логіка таймфрейму
+  // таймфрейм
   if (expiry <= 15) score -= 1;
   if (expiry === 30) score += 1;
   if (expiry >= 60) score += 2;
   if (expiry >= 120) score += 3;
 
-  // логіка по парі
+  // пара
   score *= pairWeight[pair] || 1;
 
   // OTC / NON-OTC
@@ -126,6 +132,14 @@ function getSignal() {
     score += (Math.random() - 0.5) * 0.5;
   } else {
     score += 1;
+    score += (Math.random() - 0.5);
+  }
+
+  // SAFE / AGGRESSIVE
+  if (mode === "safe") {
+    score *= 0.8;                 // занижуємо ризик
+  } else {
+    score *= 1.2;                 // більше імпульсу
     score += (Math.random() - 0.5);
   }
 
@@ -152,6 +166,7 @@ function getSignal() {
 
   document.getElementById("result").innerHTML =
     direction + "<br>" +
+    "Mode: " + (mode === "safe" ? "SAFE" : "AGGRESSIVE") + "<br>" +
     "Pair: " + pair + "<br>" +
     "Market: " + (market === "otc" ? "OTC" : "NON-OTC") + "<br>" +
     "Confidence: " + confidence + "%<br>" +
@@ -161,6 +176,7 @@ function getSignal() {
 
 </body>
 </html>
+
 
 
 
