@@ -66,11 +66,56 @@
 
 <script>
 <script>
-let lastSignals = [];
+<script>
+let lastDirections = [];
 
 function getSignal() {
-  const tf = document.getElementById("tf").value;
-  const pair = document.getElementById("pair").value;
+  const expiry = parseInt(document.getElementById("expiry").value);
+  const minConf = parseInt(document.getElementById("confidence").value);
+
+  let score = 0;
+
+  // логіка під таймфрейм
+  if (expiry <= 15) score -= 1;
+  if (expiry === 30) score += 1;
+  if (expiry >= 60) score += 2;
+  if (expiry >= 120) score += 3;
+
+  // контроль шуму
+  score += (Math.random() - 0.5);
+
+  // напрям
+  const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
+
+  // confidence НЕ random, а від score
+  let confidence = Math.min(
+    95,
+    Math.max(55, Math.floor(60 + score * 10))
+  );
+
+  // фільтр мінімальної якості
+  if (confidence < minConf) {
+    document.getElementById("result").innerHTML = "⏳ WAIT";
+    return;
+  }
+
+  // анти-спам (не більше 4 однакових)
+  lastDirections.push(direction);
+  if (lastDirections.length > 6) lastDirections.shift();
+
+  const same = lastDirections.filter(d => d === direction).length;
+  if (same >= 5) {
+    document.getElementById("result").innerHTML = "⏳ WAIT";
+    return;
+  }
+
+  document.getElementById("result").innerHTML =
+    direction + "<br>" +
+    "Confidence: " + confidence + "%<br>" +
+    "Expiry: " + expiry + "s";
+}
+</script>
+
 
   // базова логіка ваг
   let score = 0;
@@ -106,4 +151,5 @@ function getSignal() {
 </script>
 </body>
 </html>
+
 
