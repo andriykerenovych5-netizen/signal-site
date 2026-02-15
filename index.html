@@ -3,51 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <title>Signal App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
     body {
       background:#0f172a;
       color:#e5e7eb;
-      font-family:Arial;
+      font-family:Arial, sans-serif;
       display:flex;
       justify-content:center;
       align-items:center;
       height:100vh;
+      margin:0;
     }
     .box {
       background:#020617;
       padding:30px;
       border-radius:12px;
       width:320px;
+      box-shadow:0 0 20px rgba(0,0,0,0.5);
     }
-    h2 { text-align:center; }
+    h2 {
+      text-align:center;
+      margin-bottom:15px;
+    }
     select, button {
       width:100%;
       padding:10px;
       margin-top:10px;
       border-radius:6px;
       border:none;
+      font-size:15px;
     }
     button {
       background:#22c55e;
       color:#000;
       font-size:18px;
       cursor:pointer;
+      margin-top:15px;
     }
     .signal {
       margin-top:20px;
       text-align:center;
       font-size:18px;
+      min-height:60px;
     }
   </style>
 </head>
+
 <body>
   <div class="box">
     <h2>GET SIGNAL</h2>
-<select id="market">
-  <option value="otc">OTC</option>
-  <option value="live">Non-OTC</option>
-</select>
 
+    <!-- Market -->
+    <select id="market">
+      <option value="otc">OTC</option>
+      <option value="live">Non-OTC</option>
+    </select>
+
+    <!-- Expiry -->
     <select id="expiry">
       <option value="5">5 sec</option>
       <option value="15">15 sec</option>
@@ -57,6 +71,7 @@
       <option value="180">180 sec</option>
     </select>
 
+    <!-- Confidence -->
     <select id="confidence">
       <option value="60">Min 60%</option>
       <option value="70">Min 70%</option>
@@ -69,10 +84,6 @@
   </div>
 
 <script>
-<script>
-let lastDirections = [];
-
-function <script>
 let lastDirections = [];
 
 function getSignal() {
@@ -82,31 +93,28 @@ function getSignal() {
 
   let score = 0;
 
-  // базова логіка по таймфрейму
+  // логіка під таймфрейм
   if (expiry <= 15) score -= 1;
   if (expiry === 30) score += 1;
   if (expiry >= 60) score += 2;
   if (expiry >= 120) score += 3;
 
-  // 🔥 РІЗНИЦЯ МІЖ OTC І NON-OTC
+  // OTC / NON-OTC логіка
   if (market === "otc") {
-    score -= 1;                 // OTC менш стабільний
-    score += (Math.random() - 0.5) * 0.5; // менше шуму
+    score -= 1;
+    score += (Math.random() - 0.5) * 0.5;
   } else {
-    score += 1;                 // real market сильніший
-    score += (Math.random() - 0.5);       // більше імпульсу
+    score += 1;
+    score += (Math.random() - 0.5);
   }
 
-  // напрям
   const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
 
-  // confidence від сили
   let confidence = Math.min(
     95,
     Math.max(55, Math.floor(60 + score * 10))
   );
 
-  // фільтр якості
   if (confidence < minConf) {
     document.getElementById("result").innerHTML = "⏳ WAIT";
     return;
@@ -129,54 +137,7 @@ function getSignal() {
     "Expiry: " + expiry + "s";
 }
 </script>
- {
-  const expiry = parseInt(document.getElementById("expiry").value);
-  const minConf = parseInt(document.getElementById("confidence").value);
 
-  let score = 0;
-
-  // логіка під таймфрейм
-  if (expiry <= 15) score -= 1;
-  if (expiry === 30) score += 1;
-  if (expiry >= 60) score += 2;
-  if (expiry >= 120) score += 3;
-
-  // ринковий шум (мінімальний)
-  score += (Math.random() - 0.5);
-
-  // напрям
-  const direction = score >= 1 ? "⬆ CALL" : "⬇ PUT";
-
-  // confidence від сили сигналу
-  let confidence = Math.min(
-    95,
-    Math.max(55, Math.floor(60 + score * 10))
-  );
-
-  // фільтр мін. якості
-  if (confidence < minConf) {
-    document.getElementById("result").innerHTML = "⏳ WAIT";
-    return;
-  }
-
-  // анти-спам
-  lastDirections.push(direction);
-  if (lastDirections.length > 6) lastDirections.shift();
-
-  const same = lastDirections.filter(d => d === direction).length;
-  if (same >= 5) {
-    document.getElementById("result").innerHTML = "⏳ WAIT";
-    return;
-  }
-
-  document.getElementById("result").innerHTML =
-    direction + "<br>" +
-    "Confidence: " + confidence + "%<br>" +
-    "Expiry: " + expiry + "s";
-}
-</script>
-
-</script>
 </body>
 </html>
 
